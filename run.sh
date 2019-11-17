@@ -28,18 +28,17 @@ if [ "$1" = "import" ]; then
     createPostgresConfig
     service postgresql start
     sudo -u postgres createuser renderer
-    sudo -u postgres createdb -E UTF8 -O renderer gis
-    sudo -u postgres psql -d gis -c "CREATE EXTENSION postgis;"
-    sudo -u postgres psql -d gis -c "CREATE EXTENSION hstore;"
-    sudo -u postgres psql -d gis -c "ALTER TABLE geometry_columns OWNER TO renderer;"
-    sudo -u postgres psql -d gis -c "ALTER TABLE spatial_ref_sys OWNER TO renderer;"
+    sudo -u postgres createdb -E UTF8 -O renderer osm
+    sudo -u postgres psql -d osm -c "CREATE EXTENSION postgis;"
+    sudo -u postgres psql -d osm -c "CREATE EXTENSION hstore;"
+    sudo -u postgres psql -d osm -c "ALTER TABLE geometry_columns OWNER TO renderer;"
+    sudo -u postgres psql -d osm -c "ALTER TABLE spatial_ref_sys OWNER TO renderer;"
     setPostgresPassword
 
     # Download Luxembourg as sample if no data is provided
     if [ ! -f /data.osm.pbf ]; then
-        echo "WARNING: No import file at /data.osm.pbf, so importing Luxembourg as example..."
-        wget -nv http://download.geofabrik.de/europe/luxembourg-latest.osm.pbf -O /data.osm.pbf
-        wget -nv http://download.geofabrik.de/europe/luxembourg.poly -O /data.poly
+        echo "WARNING: No import file at /data.osm.pbf, so importing latest Manitoba..."
+        wget -nv http://download.geofabrik.de/north-america/canada/manitoba-latest.osm.pbf -O /data.osm.pbf
     fi
 
     if [ "$UPDATES" = "enabled" ]; then
@@ -58,10 +57,10 @@ if [ "$1" = "import" ]; then
     fi
 
     # Import data
-    sudo -u renderer osm2pgsql -d gis --create --slim -G --hstore --tag-transform-script /home/renderer/src/openstreetmap-carto/openstreetmap-carto.lua --number-processes ${THREADS:-4} ${OSM2PGSQL_EXTRA_ARGS} -S /home/renderer/src/openstreetmap-carto/openstreetmap-carto.style /data.osm.pbf
+    sudo -u renderer osm2pgsql -d osm -c --slim -G --hstore --number-processes ${THREADS:-4} ${OSM2PGSQL_EXTRA_ARGS} /data.osm.pbf
 
     # Create indexes
-    sudo -u postgres psql -d gis -f indexes.sql
+    sudo -u postgres psql -d osm -f /indexes.sql
 
     # Register that data has changed for mod_tile caching purposes
     touch /var/lib/mod_tile/planet-import-complete

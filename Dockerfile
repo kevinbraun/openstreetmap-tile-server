@@ -76,6 +76,12 @@ RUN apt-get update \
 && apt-get autoremove --yes \
 && rm -rf /var/lib/{apt,dpkg,cache,log}/
 
+# Get shapefiles
+WORKDIR /shapefiles
+COPY get-shapefiles.sh /shapefiles/get-shapefiles.sh
+RUN chmod +x get-shapefiles.sh
+RUN ./get-shapefiles.sh
+
 # Set up PostGIS
 RUN wget http://download.osgeo.org/postgis/source/postgis-3.0.0rc2.tar.gz
 RUN tar -xvzf postgis-3.0.0rc2.tar.gz
@@ -117,24 +123,52 @@ RUN make -j $(nproc) install \
 USER renderer
 
 # Configure stylesheet
-WORKDIR /home/renderer/src
-RUN git clone https://github.com/gravitystorm/openstreetmap-carto.git \
- && git -C openstreetmap-carto checkout v4.23.0
-WORKDIR /home/renderer/src/openstreetmap-carto
+# WORKDIR /home/renderer/src
+# RUN git clone https://github.com/gravitystorm/openstreetmap-carto.git \
+#  && git -C openstreetmap-carto checkout v4.23.0
+# WORKDIR /home/renderer/src/openstreetmap-carto
+# USER root
+# RUN npm install -g carto@0.18.2
+# USER renderer
+# RUN carto project.mml > mapnik.xml
+
 USER root
 RUN npm install -g carto@0.18.2
-USER renderer
-RUN carto project.mml > mapnik.xml
+USER root
 
-# Load shapefiles
-WORKDIR /home/renderer/src/openstreetmap-carto
-RUN scripts/get-shapefiles.py
+WORKDIR /home/renderer/src
+RUN git clone https://github.com/mapbox/osm-bright.git
+WORKDIR /home/renderer/src/osm-bright/osm-bright
+RUN mkdir shp
+RUN cp -r /shapefiles/* shp/
+COPY osm-bright-configure.py /home/renderer/src/osm-bright/configure.py
+WORKDIR /home/renderer/src/osm-bright
+RUN ./make.py
+WORKDIR /home/renderer/src/osm-bright/build/
+RUN carto project.mml > mapnik.xml
+WORKDIR /home/renderer/src/osm-bright
+RUN rm -rf .git
+RUN chown -R renderer:renderer .
+
+# WORKDIR /home/renderer/src
+# RUN git clone https://github.com/cybercomsweden/osm-night
+# WORKDIR /home/renderer/src/osm-night/osm-night
+# RUN mkdir shp
+# RUN cp -r /shapefiles/* shp/
+# COPY osm-night-configure.py /home/renderer/src/osm-night/configure.py
+# WORKDIR /home/renderer/src/osm-night
+# RUN ./make.py
+# WORKDIR /home/renderer/src/osm-night/build/
+# RUN carto project.mml > mapnik.xml
+# WORKDIR /home/renderer/src/osm-night
+# RUN rm -rf .git
+# RUN chown -R renderer:renderer .
+
+RUN rm -rf /shapefiles
 
 # Configure renderd
 USER root
-RUN sed -i 's/renderaccount/renderer/g' /usr/local/etc/renderd.conf \
-  && sed -i 's/hot/tile/g' /usr/local/etc/renderd.conf
-USER renderer
+COPY renderd.conf /usr/local/etc/renderd.conf
 
 # Configure Apache
 USER root
@@ -173,6 +207,11 @@ RUN cd ~/src \
     && cd regional \
     && git checkout 612fe3e040d8bb70d2ab3b133f3b2cfc6c940520 \
     && chmod u+x ~/src/regional/trim_osc.py
+
+USER root
+RUN mkdir /var/lib/mod_tile/day
+RUN mkdir /var/lib/mod_tile/night
+RUN chown -R renderer /var/lib/mod_tile 
 
 # Start running
 USER root

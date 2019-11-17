@@ -23,13 +23,27 @@
         <div id="map"></div>
 
         <script>
-            var map = L.map('map').setView([0, 0], 3);
-
-            L.tileLayer('/tile/{z}/{x}/{y}.png', {
-                maxZoom: 18,
+            var day = L.tileLayer('/day/{z}/{x}/{y}.png', {
+                maxZoom: 20,
+                minZoom: 11,
                 attribution: 'Map data &copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors, <a href="https://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>',
-                id: 'base'
-            }).addTo(map);
+                id: 'base-day'
+            });
+
+            var night = L.tileLayer('/night/{z}/{x}/{y}.png', {
+                maxZoom: 20,
+                minZoom: 11,
+                attribution: 'Map data &copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors, <a href="https://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>',
+                id: 'base-night'
+            });
+
+            var map = L.map('map', {
+                center: [49.8951, -97.1384],
+                zoom: 12,
+                layers: [day, night]
+            });
+
+            L.control.layers({"Day": day, "Night": night}).addTo(map);
         </script>
     </body>
 </html>
