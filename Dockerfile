@@ -131,6 +131,7 @@ WORKDIR /home/renderer/src
 RUN git clone https://github.com/mapbox/osm-bright.git
 RUN mkdir -p osm-bright/shp
 COPY --chown=renderer get-shapefiles.sh /home/renderer/src/osm-bright/osm-bright/shp/
+WORKDIR /home/renderer/src/osm-bright/osm-bright/shp
 RUN chmod +x get-shapefiles.sh
 RUN ./get-shapefiles.sh
 COPY osm-bright-configure.py /home/renderer/src/osm-bright/configure.py
