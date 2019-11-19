@@ -1,2 +1,4 @@
 *.osm
 *.osm.pbf
+
+shapefiles/*.zip

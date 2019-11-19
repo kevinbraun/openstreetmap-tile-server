@@ -130,11 +130,12 @@ USER renderer
 WORKDIR /home/renderer/src
 RUN git clone https://github.com/mapbox/osm-bright.git
 RUN mkdir -p osm-bright/shp
-COPY --chown=renderer get-shapefiles.sh /home/renderer/src/osm-bright/osm-bright/shp/
+COPY --chown=renderer ./shapefiles/10m-populated-places-simple.zip /home/renderer/src/osm-bright/osm-bright/shp/
+COPY --chown=renderer ./shapefiles/land-polygons-split-3857.zip /home/renderer/src/osm-bright/osm-bright/shp/
+COPY --chown=renderer ./shapefiles/simplified-land-polygons-complete-3857.zip /home/renderer/src/osm-bright/osm-bright/shp/
 WORKDIR /home/renderer/src/osm-bright/osm-bright/shp
-RUN chmod +x get-shapefiles.sh
-RUN ./get-shapefiles.sh
-COPY osm-bright-configure.py /home/renderer/src/osm-bright/configure.py
+RUN unzip "*.zip"
+COPY ./configs/osm-bright-configure.py /home/renderer/src/osm-bright/configure.py
 WORKDIR /home/renderer/src/osm-bright
 RUN ./make.py
 WORKDIR /home/renderer/src/osm-bright/build/
@@ -201,8 +202,8 @@ RUN chown -R renderer /var/lib/mod_tile
 
 # Start running
 USER root
-COPY renderd.conf /usr/local/etc/renderd.conf
-COPY apache.conf /etc/apache2/sites-available/000-default.conf
+COPY ./configs/renderd.conf /usr/local/etc/renderd.conf
+COPY ./configs/apache.conf /etc/apache2/sites-available/000-default.conf
 COPY leaflet-demo.html /var/www/html/index.html
 COPY run.sh /
 COPY indexes.sql /
