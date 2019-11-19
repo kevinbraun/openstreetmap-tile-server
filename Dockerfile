@@ -1,3 +1,9 @@
+#
+# Modified from original https://github.com/Overv/openstreetmap-tile-server version
+# to tweak a few things, in particular, to use osm-bright as the map theme instead of
+# the default openstreetmap-carto
+#
+
 FROM ubuntu:18.04
 
 # Based on
@@ -76,12 +82,6 @@ RUN apt-get update \
 && apt-get autoremove --yes \
 && rm -rf /var/lib/{apt,dpkg,cache,log}/
 
-# Get shapefiles
-WORKDIR /shapefiles
-COPY get-shapefiles.sh /shapefiles/get-shapefiles.sh
-RUN chmod +x get-shapefiles.sh
-RUN ./get-shapefiles.sh
-
 # Set up PostGIS
 RUN wget http://download.osgeo.org/postgis/source/postgis-3.0.0rc2.tar.gz
 RUN tar -xvzf postgis-3.0.0rc2.tar.gz
@@ -120,36 +120,29 @@ USER root
 RUN make -j $(nproc) install \
   && make -j $(nproc) install-mod_tile \
   && ldconfig
-USER renderer
-
-# Configure stylesheet
-# WORKDIR /home/renderer/src
-# RUN git clone https://github.com/gravitystorm/openstreetmap-carto.git \
-#  && git -C openstreetmap-carto checkout v4.23.0
-# WORKDIR /home/renderer/src/openstreetmap-carto
-# USER root
-# RUN npm install -g carto@0.18.2
-# USER renderer
-# RUN carto project.mml > mapnik.xml
 
 USER root
 RUN npm install -g carto@0.18.2
-USER root
 
+
+# Clone and configure osm-bright and grab some shapefiles
+USER renderer
 WORKDIR /home/renderer/src
 RUN git clone https://github.com/mapbox/osm-bright.git
-WORKDIR /home/renderer/src/osm-bright/osm-bright
-RUN mkdir shp
-RUN cp -r /shapefiles/* shp/
+RUN mkdir -p osm-bright/shp
+COPY --chown=renderer get-shapefiles.sh /home/renderer/src/osm-bright/osm-bright/shp/
+RUN chmod +x get-shapefiles.sh
+RUN ./get-shapefiles.sh
 COPY osm-bright-configure.py /home/renderer/src/osm-bright/configure.py
 WORKDIR /home/renderer/src/osm-bright
 RUN ./make.py
 WORKDIR /home/renderer/src/osm-bright/build/
+RUN rm -rf OSMBright
+RUN rm -rf shp
 RUN carto project.mml > mapnik.xml
 WORKDIR /home/renderer/src/osm-bright
-RUN rm -rf .git
-RUN chown -R renderer:renderer .
 
+# Clone another theme, osm-night, and copy shapefiles over from osm-bright... or something
 # WORKDIR /home/renderer/src
 # RUN git clone https://github.com/cybercomsweden/osm-night
 # WORKDIR /home/renderer/src/osm-night/osm-night
@@ -164,12 +157,6 @@ RUN chown -R renderer:renderer .
 # RUN rm -rf .git
 # RUN chown -R renderer:renderer .
 
-RUN rm -rf /shapefiles
-
-# Configure renderd
-USER root
-COPY renderd.conf /usr/local/etc/renderd.conf
-
 # Configure Apache
 USER root
 RUN mkdir /var/lib/mod_tile \
@@ -179,8 +166,6 @@ RUN mkdir /var/lib/mod_tile \
 RUN echo "LoadModule tile_module /usr/lib/apache2/modules/mod_tile.so" >> /etc/apache2/conf-available/mod_tile.conf \
     && echo "LoadModule headers_module /usr/lib/apache2/modules/mod_headers.so" >> /etc/apache2/conf-available/mod_headers.conf \
   && a2enconf mod_tile && a2enconf mod_headers
-COPY apache.conf /etc/apache2/sites-available/000-default.conf
-COPY leaflet-demo.html /var/www/html/index.html
 RUN ln -sf /dev/stdout /var/log/apache2/access.log \
   && ln -sf /dev/stderr /var/log/apache2/error.log
 
@@ -215,6 +200,9 @@ RUN chown -R renderer /var/lib/mod_tile
 
 # Start running
 USER root
+COPY renderd.conf /usr/local/etc/renderd.conf
+COPY apache.conf /etc/apache2/sites-available/000-default.conf
+COPY leaflet-demo.html /var/www/html/index.html
 COPY run.sh /
 COPY indexes.sql /
 ENTRYPOINT ["/run.sh"]
