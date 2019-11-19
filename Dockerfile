@@ -135,12 +135,10 @@ COPY --chown=renderer ./shapefiles/land-polygons-split-3857.zip /home/renderer/s
 COPY --chown=renderer ./shapefiles/simplified-land-polygons-complete-3857.zip /home/renderer/src/osm-bright/osm-bright/shp/
 WORKDIR /home/renderer/src/osm-bright/osm-bright/shp
 RUN unzip "*.zip"
-COPY ./configs/osm-bright-configure.py /home/renderer/src/osm-bright/configure.py
 WORKDIR /home/renderer/src/osm-bright
-RUN ./make.py
+COPY --chown=renderer configs/osm-bright-configure.py /home/renderer/src/osm-bright/configure.py
+RUN ./make.py && rm -rf build/OSMBright && rm -rf build/shp
 WORKDIR /home/renderer/src/osm-bright/build/
-RUN rm -rf OSMBright
-RUN rm -rf shp
 RUN carto project.mml > mapnik.xml
 WORKDIR /home/renderer/src/osm-bright
 
@@ -172,7 +170,7 @@ RUN ln -sf /dev/stdout /var/log/apache2/access.log \
   && ln -sf /dev/stderr /var/log/apache2/error.log
 
 # Configure PosgtreSQL
-COPY postgresql.custom.conf.tmpl /etc/postgresql/12/main/
+COPY postgresql.custom.conf.tmpl /etc/postgresql/12/main/postgresql.custom.conf.tmpl
 RUN chown -R postgres:postgres /var/lib/postgresql \
   && chown postgres:postgres /etc/postgresql/12/main/postgresql.custom.conf.tmpl \
   && echo "\ninclude 'postgresql.custom.conf'" >> /etc/postgresql/12/main/postgresql.conf
@@ -202,8 +200,8 @@ RUN chown -R renderer /var/lib/mod_tile
 
 # Start running
 USER root
-COPY ./configs/renderd.conf /usr/local/etc/renderd.conf
-COPY ./configs/apache.conf /etc/apache2/sites-available/000-default.conf
+COPY configs/renderd.conf /usr/local/etc/renderd.conf
+COPY configs/apache.conf /etc/apache2/sites-available/000-default.conf
 COPY leaflet-demo.html /var/www/html/index.html
 COPY run.sh /
 COPY indexes.sql /
