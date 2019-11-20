@@ -200,7 +200,7 @@ RUN chown -R renderer /var/lib/mod_tile
 
 # Start running
 USER root
-COPY configs/renderd.conf /usr/local/etc/renderd.conf
+COPY --chown=renderer configs/renderd.conf /usr/local/etc/renderd.conf
 COPY configs/apache.conf /etc/apache2/sites-available/000-default.conf
 COPY leaflet-demo.html /var/www/html/index.html
 COPY run.sh /

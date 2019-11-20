@@ -1,20 +1,27 @@
 # openstreetmap-tile-server
 
-This container allows you to easily set up an OpenStreetMap PNG tile server given a `.osm.pbf` file. It is based on the [latest Ubuntu 18.04 LTS guide](https://switch2osm.org/manually-building-a-tile-server-18-04-lts/) from [switch2osm.org](https://switch2osm.org/) and therefore uses the default OpenStreetMap style.
+This container allows you to easily set up an OpenStreetMap PNG tile server given a `.osm.pbf` file. It is based on the [latest Ubuntu 18.04 LTS guide](https://switch2osm.org/manually-building-a-tile-server-18-04-lts/) from [switch2osm.org](https://switch2osm.org/), with some changes - most specifically, to use the [OSM Bright](https://github.com/mapbox/osm-bright) Carto theme.
 
 ## Quickstart, building locally
-    # download some data, save it somewhere
+    # download some OSM data, save it somewhere
     wget http://download.geofabrik.de/north-america/canada/manitoba-latest.osm.pbf
 
+    # Get the required shapefiles
+    cd shapefiles
+    ./get-shapefiles.sh
+
     # build our image
-    docker volume create osm-data
     docker image build -t osm-server .      # this'll take a while...
 
     # Import and run
-    docker run -v ~/wherever/manitoba-latest.osm.pbf:/data.osm.pbf -v osm-data:/var/lib/postgresql/12/main osm-server import
-    docker run -p 80:80 -v osm-data:/var/lib/postgresql/12/main osm-server run
+    docker volume create osm-data
+    docker volume create osm-tiles
 
-## More detailed setup...
+    docker run -v ~/wherever/manitoba-latest.osm.pbf:/data.osm.pbf -v osm-data:/var/lib/postgresql/12/main osm-server import
+    
+    docker run -p 80:80 -v osm-data:/var/lib/postgresql/12/main -v osm-tiles:/var/lib/mod_tile osm-server run
+
+## More detailed setup:
 
 ### Setting up the server
 
