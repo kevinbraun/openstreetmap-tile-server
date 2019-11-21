@@ -1,0 +1,29 @@
+version: '3.3'
+
+services:
+  import:
+    image: osm-server
+    build: .
+    volumes:
+        - ./manitoba-latest.osm.pbf:/data.osm.pbf
+        - osm-data:/var/lib/postgresql/12/main
+    command: import
+
+  tile-server:
+    image: osm-server
+    build: .
+    volumes:
+      - osm-data:/var/lib/postgresql/12/main
+      - osm-tiles:/var/lib/mod_tile
+    ports:
+      - "80:80"
+    environment:
+      - THREADS=${RENDER_THREADS:-4}
+    command: run
+  
+
+volumes:
+  osm-data:
+    external: true
+  osm-tiles:
+    external: true

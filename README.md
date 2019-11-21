@@ -17,9 +17,11 @@ This container allows you to easily set up an OpenStreetMap PNG tile server give
     docker volume create osm-data
     docker volume create osm-tiles
 
-    docker run -v ~/wherever/manitoba-latest.osm.pbf:/data.osm.pbf -v osm-data:/var/lib/postgresql/12/main osm-server import
+    docker-compose up import                # one-off command to import the data
+    docker-compose up -d tile-server        # runs a daemonized tile server on port 80
     
-    docker run -p 80:80 -v osm-data:/var/lib/postgresql/12/main -v osm-tiles:/var/lib/mod_tile osm-server run
+    # Stooooop
+    docker-compose down                     # stop everything
 
 ## More detailed setup:
 
